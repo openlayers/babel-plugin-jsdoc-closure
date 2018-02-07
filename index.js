@@ -89,9 +89,6 @@ module.exports = function(babel) {
                       tags = parseComment(commentSource)[0];
                       modified = processTags(tags, lines);
                       if (modified) {
-                        if (path.node.extra && path.node.extra.parenthesized) {
-                          path.node.value = `(${path.node.value})`;
-                        }
                         commentSource = lines.join('\n');
                         comment.value = commentSource.substring(2, commentSource.length - 2);
                       }
