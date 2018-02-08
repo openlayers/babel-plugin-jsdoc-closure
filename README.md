@@ -88,10 +88,10 @@ Closure Compiler does not allow JSDoc's [namepaths](http://usejsdoc.org/about-na
 const Bar = function(name) {
   this.name = name;
 };
-export default Person;
+export default Bar;
 ```
 
-Then you can use the `Person` type in another module with
+Then you can use the `Bar` type in another module with
 
 ```js
 /**
