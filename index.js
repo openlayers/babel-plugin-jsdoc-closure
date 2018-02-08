@@ -81,15 +81,18 @@ module.exports = function(babel) {
                 if (comment.type == 'CommentBlock') {
                   let tags, modified;
                   do {
-                    tags = parseComment(`/*${comment.value}*/`)[0].tags;
-                    const newValue = processTags(tags, comment.value);
-                    modified = newValue !== comment.value;
-                    if (modified) {
-                      if (recast) {
-                        comments[i] = babel.transform(`/*${newValue}*/`).ast.comments[0];
-                        comment = comments[i];
-                      } else {
-                        comment.value = newValue;
+                    const parsedComment = parseComment(`/*${comment.value}*/`);
+                    if (parsedComment && parsedComment.length > 0) {
+                      tags = parsedComment[0].tags;
+                      const newValue = processTags(tags, comment.value);
+                      modified = newValue !== comment.value;
+                      if (modified) {
+                        if (recast) {
+                          comments[i] = babel.transform(`/*${newValue}*/`).ast.comments[0];
+                          comment = comments[i];
+                        } else {
+                          comment.value = newValue;
+                        }
                       }
                     }
                   } while (modified);
