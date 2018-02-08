@@ -37,9 +37,8 @@ function formatType(type) {
   }
 }
 
-function processTags(comment, lines) {
-  let modified = false;
-  comment.tags.forEach(tag => {
+function processTags(tags, comment) {
+  tags.forEach(tag => {
     if (tag.tag == 'module') {
       modulePath = tag.name;
       levelsUp = modulePath.split('/').length;
@@ -49,7 +48,6 @@ function processTags(comment, lines) {
     } else {
       if (tag.type && tag.type.indexOf('module:') !== -1) {
         parseModules(tag.type).forEach(type => {
-          modified = true;
           let replacement;
           const moduleMatch = type.match(/module:([^\.]*)\.(.*)$/);
           if (moduleMatch && moduleMatch[1] == modulePath) {
@@ -59,52 +57,51 @@ function processTags(comment, lines) {
             const importLine = formatImport(type);
             imports[importLine] = true;
           }
-          for (let i = tag.line, ii = lines.length; i < ii; ++i) {
-            lines[i] = lines[i].replace(type, replacement);
-          }
+          comment = comment.replace(new RegExp(type, 'g'), replacement);
         });
       }
     }
   });
-  return modified;
+  return comment;
 }
 
 module.exports = function(babel) {
 
   return {
     visitor: {
-      Program: {
-        enter(path, state) {
-          resourcePath = state.file.opts.filename;
-          imports = {};
-          path.traverse({
-            enter(path) {
-              if (path.node.leadingComments) {
-                path.node.leadingComments.forEach(comment => {
-                  if (comment.type == 'CommentBlock') {
-                    let commentSource = `/*${comment.value}*/`;
-                    const lines = commentSource.split('\n');
-                    let tags, modified;
-                    do {
-                      tags = parseComment(commentSource)[0];
-                      modified = processTags(tags, lines);
-                      if (modified) {
-                        commentSource = lines.join('\n');
-                        comment.value = commentSource.substring(2, commentSource.length - 2);
+      Program: function(path, state) {
+        const recast = state.file.opts.parserOpts && state.file.opts.parserOpts.parser == 'recast';
+        resourcePath = state.file.opts.filename;
+        imports = {};
+        path.traverse({
+          enter(path) {
+            const comments = recast ? path.node.comments : path.node.leadingComments;
+            if (comments) {
+              comments.forEach((comment, i) => {
+                if (comment.type == 'CommentBlock') {
+                  let tags, modified;
+                  do {
+                    tags = parseComment(`/*${comment.value}*/`)[0].tags;
+                    const newValue = processTags(tags, comment.value);
+                    modified = newValue !== comment.value;
+                    if (modified) {
+                      if (recast) {
+                        comments[i] = babel.transform(`/*${newValue}*/`).ast.comments[0];
+                        comment = comments[i];
+                      } else {
+                        comment.value = newValue;
                       }
-                    } while (modified);
-                  }
-                });
-              }
+                    }
+                  } while (modified);
+                }
+              });
             }
-          });
-        },
-        exit(path, state) {
-          Object.keys(imports).forEach(i => {
-            const node = babel.transform(i).ast;
-            path.pushContainer('body', node);
-          });
-        }
+          }
+        });
+        Object.keys(imports).forEach(i => {
+          const node = babel.transform(i).ast.program.body[0];
+          path.pushContainer('body', node);
+        });
       }
     }
   };
