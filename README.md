@@ -6,7 +6,7 @@ This is useful for type checking and building an application or library from a s
 
 ## Installation
 
-    npm install babel-cli babel-plugin-jsdoc-Closure
+    npm install babel-cli babel-plugin-jsdoc-closure
 
 ### Configuration
 
@@ -73,3 +73,43 @@ compiler.run((exit, out, err) => {
 To run the Compiler, simply call
 
     node build.js
+
+## What the plugin does
+
+Closure Compiler does not allow JSDoc's [namepaths](http://usejsdoc.org/about-namepaths.html) with [module identifiers](http://usejsdoc.org/howto-commonjs-modules.html#module-identifiers) as types. Instead, with `module_resolution: 'NODE'`, it recognizes types that are imported from other files. Let's say you have a file `foo/Bar.js` with the following:
+
+```js
+/** @module foo/Bar */
+
+/**
+ * @constructor
+ * @param {string} name Name.
+ */
+const Bar = function(name) {
+  this.name = name;
+};
+export default Person;
+```
+
+Then you can use the `Person` type in another module with
+
+```js
+/**
+ * @param {module:foo/Bar} bar Bar.
+ */
+function foo(bar) {}
+```
+
+This is fine for JSDoc, and this plugin transforms it to something like
+
+```js
+/**
+ * @param {foo$Bar} bar Bar.
+ */
+function foo(bar) {}
+const foo$Bar = require('./foo/Bar');
+```
+
+With this, the type definition is recognized by Closure Compiler.
+
+**Note**: To avoid the need for source maps, line numbers are retained by this plugin. This is the reason why the `require()` assignments are added at the bottom of each file.
