@@ -1,7 +1,7 @@
 const parseComment = require('comment-parser');
 const path = require('path');
 
-let imports, levelsUp, modulePath, resourcePath;
+let babel, imports, levelsUp, modulePath, recast, resourcePath;
 
 function parseModules(type) {
   return type.match(/module\:[^ \|\}\>,=\n]+/g);
@@ -65,39 +65,49 @@ function processTags(tags, comment) {
   return comment;
 }
 
-module.exports = function(babel) {
+function processComments(comments) {
+  for (let i = 0, ii = comments.length; i < ii; ++i) {
+    let comment = comments[i];
+    if (comment.type == 'CommentBlock') {
+      let tags, modified;
+      do {
+        const parsedComment = parseComment(`/*${comment.value}*/`);
+        if (parsedComment && parsedComment.length > 0) {
+          tags = parsedComment[0].tags;
+          const newValue = processTags(tags, comment.value);
+          modified = newValue !== comment.value;
+          if (modified) {
+            if (recast) {
+              comments[i] = babel.transform(`/*${newValue}*/`).ast.comments[0];
+              comment = comments[i];
+            } else {
+              comment.value = newValue;
+            }
+          }
+        }
+      } while (modified);
+    }
+  }
+}
+
+module.exports = function(b) {
+
+  babel = b;
 
   return {
     visitor: {
       Program: function(path, state) {
-        const recast = state.file.opts.parserOpts && state.file.opts.parserOpts.parser == 'recast';
+        recast = state.file.opts.parserOpts && state.file.opts.parserOpts.parser == 'recast';
+        const commentsProperty = recast ? 'comments' : 'leadingComments';
         resourcePath = state.file.opts.filename;
         imports = {};
+        if (path.parent[commentsProperty]) {
+          processComments(path.parent[commentsProperty]);
+        }
         path.traverse({
           enter(path) {
-            const comments = recast ? path.node.comments : path.node.leadingComments;
-            if (comments) {
-              comments.forEach((comment, i) => {
-                if (comment.type == 'CommentBlock') {
-                  let tags, modified;
-                  do {
-                    const parsedComment = parseComment(`/*${comment.value}*/`);
-                    if (parsedComment && parsedComment.length > 0) {
-                      tags = parsedComment[0].tags;
-                      const newValue = processTags(tags, comment.value);
-                      modified = newValue !== comment.value;
-                      if (modified) {
-                        if (recast) {
-                          comments[i] = babel.transform(`/*${newValue}*/`).ast.comments[0];
-                          comment = comments[i];
-                        } else {
-                          comment.value = newValue;
-                        }
-                      }
-                    }
-                  } while (modified);
-                }
-              });
+            if (path.node[commentsProperty]) {
+              processComments(path.node[commentsProperty]);
             }
           }
         });
