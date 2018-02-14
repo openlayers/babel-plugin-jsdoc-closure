@@ -21,7 +21,7 @@ describe('babel-plugin-jsdoc-closure', function() {
 
   function test(source, expected, filename) {
     let got = babel.transform(source, filename ? Object.assign({filename}, options) : options);
-    assert.equal(got.code, expected);
+    assert.equal(got.code.replace(/\n/g, ''), expected.replace(/\n/g, ''));
     got = babel.transform(source,  filename ? Object.assign({filename}, recastOptions) : recastOptions);
     assert.equal(got.code, expected);
   }
@@ -112,6 +112,35 @@ describe('babel-plugin-jsdoc-closure', function() {
       '/** @module module2/types */\n' +
       '/** @param {!module1$Bar} */\n' +
       'let foo;\n' +
+      'const module1$Bar = require(\'../module1/Bar\');',
+      './test/module2/types.js'
+    );
+  });
+
+  it('exports typedefs', function() {
+    test(
+      '/** @module module2/types */\n' +
+      '/**\n' +
+      ' * @typedef {number} Foo\n' +
+      ' */\n',
+      '/** @module module2/types */\n' +
+      '/** @typedef {number} */\n\n' +
+      'export let Foo;\n',
+      './test/module2/types.js'
+    );
+  });
+
+  it('modifies Object typedefs', function() {
+    test(
+      '/** @module module2/types */\n' +
+      '/**\n' +
+      ' * @typedef {Object} Foo\n' +
+      ' * @property {!module:module1/Bar} bar Bar.\n' +
+      ' * @property {number} baz Baz.\n' +
+      ' */\n',
+      '/** @module module2/types */\n' +
+      '/** @typedef {{bar:!module1$Bar,baz:number}}\n' +
+      'export let Foo;\n\n\n\n' +
       'const module1$Bar = require(\'../module1/Bar\');',
       './test/module2/types.js'
     );

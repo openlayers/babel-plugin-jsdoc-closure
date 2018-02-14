@@ -38,6 +38,7 @@ function formatType(type) {
 }
 
 function processTags(tags, comment) {
+  let newComment;
   tags.forEach(tag => {
     if (tag.tag == 'module') {
       modulePath = tag.name;
@@ -57,35 +58,68 @@ function processTags(tags, comment) {
             const importLine = formatImport(type);
             imports[importLine] = true;
           }
-          comment = comment.replace(new RegExp(type, 'g'), replacement);
+          newComment = comment.value.replace(new RegExp(type, 'g'), replacement);
         });
       }
     }
   });
-  return comment;
+  return newComment;
+}
+
+function processTypedef(tags, comment) {
+  let type, typedef, typedefExport, newComment;
+  for (let i = 0, ii = tags.length; i < ii; ++i) {
+    const tag = tags[i];
+    if (tag.tag == 'typedef') {
+      typedef = tag;
+    } else if (tag.tag == 'property') {
+      if (!type) {
+        type = {};
+      }
+      type[tag.name] = tag.type;
+    }
+  }
+  if (typedef) {
+    const closureTypedef = type ? JSON.stringify(type).replace(/"/g, '') : typedef.type;
+    const numLines = comment.value.split('\n').length;
+    newComment = typedef.source.replace(/(@typedef\s*){[^}]+}.*/, `$1{${closureTypedef}}`);
+    newComment = `* ${newComment} `;
+    for (let i = 0, ii = numLines.length; i < ii; ++i) {
+      newComment += '\n *';
+    }
+    if (typedef.name) {
+      typedefExport = `export let ${typedef.name};`;
+    }
+  }
+  return [newComment, typedefExport];
 }
 
 function processComments(comments) {
   for (let i = 0, ii = comments.length; i < ii; ++i) {
     let comment = comments[i];
     if (comment.type == 'CommentBlock') {
-      let tags, modified;
+      let tags, newComment, typedefExport;
       do {
         const parsedComment = parseComment(`/*${comment.value}*/`);
         if (parsedComment && parsedComment.length > 0) {
           tags = parsedComment[0].tags;
-          const newValue = processTags(tags, comment.value);
-          modified = newValue !== comment.value;
-          if (modified) {
+          newComment = processTags(tags, comment);
+          if (!newComment && !typedefExport) {
+            [newComment, typedefExport] = processTypedef(tags, comment);
+          }
+          if (newComment) {
             if (recast) {
-              comments[i] = babel.transform(`/*${newValue}*/`).ast.comments[0];
+              comments[i] = babel.transform(`/*${newComment}*/`).ast.comments[0];
               comment = comments[i];
             } else {
-              comment.value = newValue;
+              comment.value = newComment;
             }
           }
+          if (typedefExport) {
+            //eslint-disable-line
+          }
         }
-      } while (modified);
+      } while (newComment);
     }
   }
 }
@@ -101,8 +135,8 @@ module.exports = function(b) {
         const commentsProperty = recast ? 'comments' : 'leadingComments';
         resourcePath = state.file.opts.filename;
         imports = {};
-        if (path.parent[commentsProperty]) {
-          processComments(path.parent[commentsProperty]);
+        if (path.parent.comments) {
+          processComments(path.parent.comments);
         }
         path.traverse({
           enter(path) {
