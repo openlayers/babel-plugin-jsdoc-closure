@@ -76,6 +76,8 @@ To run the Compiler, simply call
 
 ## What the plugin does
 
+### Convert module namepaths to imported types
+
 Closure Compiler does not allow JSDoc's [namepaths](http://usejsdoc.org/about-namepaths.html) with [module identifiers](http://usejsdoc.org/howto-commonjs-modules.html#module-identifiers) as types. Instead, with `module_resolution: 'NODE'`, it recognizes types that are imported from other files. Let's say you have a file `foo/Bar.js` with the following:
 
 ```js
@@ -112,4 +114,27 @@ const foo$Bar = require('./foo/Bar');
 
 With this, the type definition is recognized by Closure Compiler.
 
-**Note**: To avoid the need for source maps, line numbers are retained by this plugin. This is the reason why the `require()` assignments are added at the bottom of each file.
+### Convert JSDoc typedefs to Closure typedefs
+
+JSDoc uses a nice, documentable format for `{Object}` typedefs:
+
+```js
+/**
+ * @typedef {Object} Foo
+ * @property {string} bar Bar.
+ * @property {module:types.Baz} baz Baz.
+ */
+```
+
+Such typedefs are not understood by Closure compiler, so they are transformed to something like
+
+```js
+/**
+ * @typedef {{bar: (string), baz: (_types_Baz)}}
+ */
+export let Foo;
+```
+
+### Notes
+
+To avoid the need for source maps, line numbers are retained by this plugin. This is the reason why the `require()` assignments are added at the bottom of each file.
