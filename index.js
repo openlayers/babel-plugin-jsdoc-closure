@@ -1,7 +1,7 @@
 const parseComment = require('comment-parser');
 const path = require('path');
 
-let babel, imports, levelsUp, modulePath, recast, resourcePath;
+let babel, commentsProperty, imports, levelsUp, modulePath, recast, resourcePath;
 
 function parseModules(type) {
   return type.match(/module\:[^ \|\}\>,=\n]+/g);
@@ -76,50 +76,69 @@ function processTypedef(tags, comment) {
       if (!type) {
         type = {};
       }
-      type[tag.name] = tag.type;
+      type[tag.name] = `(${tag.type})`;
     }
   }
   if (typedef) {
     const closureTypedef = type ? JSON.stringify(type).replace(/"/g, '') : typedef.type;
-    const numLines = comment.value.split('\n').length;
-    newComment = typedef.source.replace(/(@typedef\s*){[^}]+}.*/, `$1{${closureTypedef}}`);
-    newComment = `* ${newComment} `;
-    for (let i = 0, ii = numLines.length; i < ii; ++i) {
-      newComment += '\n *';
-    }
+    let addLines = comment.value.split('\n').length - 1;
+    newComment = typedef.source.replace(/(@typedef\s*){[^}]+} .*/, `$1{${closureTypedef}}`);
+    newComment = `* ${newComment}`;
     if (typedef.name) {
-      typedefExport = `export let ${typedef.name};`;
+      addLines--;
+      typedefExport = `export let ${typedef.name};\n`;
     }
+    while (addLines--) {
+      newComment += '\n' + (addLines >= 1 ? ' *' : '');
+    }
+    newComment += ' ';
   }
   return [newComment, typedefExport];
 }
 
-function processComments(comments) {
+function processComments(property, node, path) {
+  const comments = node[property];
   for (let i = 0, ii = comments.length; i < ii; ++i) {
     let comment = comments[i];
     if (comment.type == 'CommentBlock') {
-      let tags, newComment, typedefExport;
+      let tags, modified, typedefExport;
       do {
         const parsedComment = parseComment(`/*${comment.value}*/`);
         if (parsedComment && parsedComment.length > 0) {
           tags = parsedComment[0].tags;
-          newComment = processTags(tags, comment);
+          const oldComment = comment.value;
+          let newComment = processTags(tags, comment);
+          modified = newComment && oldComment != newComment;
           if (!newComment && !typedefExport) {
             [newComment, typedefExport] = processTypedef(tags, comment);
           }
           if (newComment) {
             if (recast) {
-              comments[i] = babel.transform(`/*${newComment}*/`).ast.comments[0];
-              comment = comments[i];
+              comment = babel.transform(`/*${newComment}*/`).ast.comments[0];
+              comments[i] = comment;
             } else {
               comment.value = newComment;
             }
           }
           if (typedefExport) {
-            //eslint-disable-line
+            const program = babel.transform(typedefExport).ast.program;
+            const newNode = program.body[0];
+            newNode[commentsProperty] = comments.splice(0, i + 1);
+            newNode[commentsProperty].forEach(comment => {
+              comment.leading = true;
+            });
+            i = -1;
+            ii = comments.length;
+            if (node.type != 'Program') {
+              path.insertBefore(newNode);
+            } else {
+              path.parent.program.body.push(newNode);
+            }
+            typedefExport = undefined;
+            newComment = undefined;
           }
         }
-      } while (newComment);
+      } while (modified);
     }
   }
 }
@@ -132,16 +151,18 @@ module.exports = function(b) {
     visitor: {
       Program: function(path, state) {
         recast = state.file.opts.parserOpts && state.file.opts.parserOpts.parser == 'recast';
-        const commentsProperty = recast ? 'comments' : 'leadingComments';
+        commentsProperty = recast ? 'comments' : 'leadingComments';
         resourcePath = state.file.opts.filename;
         imports = {};
-        if (path.parent.comments) {
-          processComments(path.parent.comments);
+        const root = path.node;
+        const innerCommentsProperty = recast ? 'comments' : 'innerComments';
+        if (root[innerCommentsProperty]) {
+          processComments(innerCommentsProperty, root, path);
         }
         path.traverse({
           enter(path) {
             if (path.node[commentsProperty]) {
-              processComments(path.node[commentsProperty]);
+              processComments(commentsProperty, path.node, path);
             }
           }
         });
