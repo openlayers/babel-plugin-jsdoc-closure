@@ -140,13 +140,13 @@ describe('babel-plugin-jsdoc-closure', function() {
       '/**\n' +
       ' * @typedef {Object} Foo\n' +
       ' * @property {!module:module1/Bar} bar Bar.\n' +
-      ' * @property {number} baz Baz.\n' +
+      ' * @property {number} [baz=0] Baz.\n' +
       ' */\n',
       '/** @module module2/types */\n' +
       '/** @typedef {number}\n' +
       ' */\n' +
       'export let Bar;\n\n' +
-      '/** @typedef {{bar:(!module1$Bar),baz:(number)}}\n' +
+      '/** @typedef {{bar:(!module1$Bar),baz:(undefined|number)}}\n' +
       ' *\n' +
       ' *\n' +
       ' */\n' +

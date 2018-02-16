@@ -76,7 +76,7 @@ function processTypedef(tags, comment) {
       if (!type) {
         type = {};
       }
-      type[tag.name] = `(${tag.type})`;
+      type[tag.name] = `(${tag.optional ? 'undefined|' : ''}${tag.type})`;
     }
   }
   if (typedef) {
