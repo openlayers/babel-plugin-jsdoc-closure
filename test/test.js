@@ -26,7 +26,7 @@ describe('babel-plugin-jsdoc-closure', function() {
     assert.equal(got.code, expected);
   }
 
-  it('transforms a type with an import', function() {
+  it('transforms a type with an imported module', function() {
     test(
       '/** @module module2/types */\n' +
       '/** @type {module:module1/Bar} */\n' +
@@ -39,10 +39,36 @@ describe('babel-plugin-jsdoc-closure', function() {
     );
   });
 
-  it('transforms a type with a named import', function() {
+  it('transforms a type with an imported default export', function() {
+    test(
+      '/** @module module2/types */\n' +
+      '/** @type {module:module1/Bar~Bar} */\n' +
+      'let foo;\n',
+      '/** @module module2/types */\n' +
+      '/** @type {module1_Bar_Bar} */\n' +
+      'let foo;\n' +
+      'const module1_Bar_Bar = require(\'../module1/Bar\');',
+      './test/module2/types.js'
+    );
+  });
+
+  it('transforms a type with an imported named export', function() {
     test(
       '/** @module module2/types */\n' +
       '/** @type {module:types.foo} */\n' +
+      'let foo;\n',
+      '/** @module module2/types */\n' +
+      '/** @type {_types_foo} */\n' +
+      'let foo;' + '\n' +
+      'const _types_foo = require(\'../types\').foo;',
+      './test/module2/types.js'
+    );
+  });
+
+  it('transforms a type with a JSDoc module path', function() {
+    test(
+      '/** @module module2/types */\n' +
+      '/** @type {module:types~foo} */\n' +
       'let foo;\n',
       '/** @module module2/types */\n' +
       '/** @type {_types_foo} */\n' +

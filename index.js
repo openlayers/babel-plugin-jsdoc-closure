@@ -11,25 +11,26 @@ function formatImport(type) {
   type = type.replace(/^module\:/, '');
   const pathParts = type.split('/');
   const name = pathParts.pop();
-  const namedParts = name.split('.');
+  const namedParts = name.split(/[\.~]/);
   let up = '';
   for (let i = 1; i < levelsUp; ++i) {
     up += '../';
   }
   const typePath = (up || './') + (pathParts.length > 0 ? pathParts.join('/') + '/' : '');
 
-  if (namedParts.length > 1) {
+  if (namedParts.length > 1 && namedParts[1] != namedParts[0]) {
     return `const ${formatType(type)} = require('${typePath}${namedParts[0]}').${namedParts[1]};`;
   } else {
     return `const ${formatType(type)} = require('${typePath}${namedParts[0]}');`;
   }
+
 }
 
 function formatType(type) {
   type = type.replace(/module\:/, '');
   const pathParts = type.split('/');
   const name = pathParts.pop();
-  const namedParts = name.split('.');
+  const namedParts = name.split(/[\.~]/);
   if (namedParts.length > 1) {
     return `${pathParts.join('_')}_${namedParts.join('_')}`;
   } else {
@@ -50,7 +51,7 @@ function processTags(tags, comment) {
       if (tag.type && tag.type.indexOf('module:') !== -1) {
         parseModules(tag.type).forEach(type => {
           let replacement;
-          const moduleMatch = type.match(/module:([^\.]*)\.(.*)$/);
+          const moduleMatch = type.match(/module:([^\.]*)[\.~](.*)$/);
           if (moduleMatch && moduleMatch[1] == modulePath) {
             replacement = moduleMatch[2];
           } else {
