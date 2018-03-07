@@ -78,6 +78,20 @@ describe('babel-plugin-jsdoc-closure', function() {
     );
   });
 
+  it('transforms a type with type application of module paths', function() {
+    test(
+      '/** @module module2/types */\n' +
+      '/** @type {module:types~foo.<module:types~bar>} */\n' +
+      'let foo;\n',
+      '/** @module module2/types */\n' +
+      '/** @type {_types_foo.<_types_bar>} */\n' +
+      'let foo;' + '\n' +
+      'const _types_foo = require(\'../types\').foo;\n' +
+      'const _types_bar = require(\'../types\').bar;',
+      './test/module2/types.js'
+    );
+  });
+
   it('resolves path correctly for index.js files', function() {
     test(
       '/** @module module2/types */\n' +

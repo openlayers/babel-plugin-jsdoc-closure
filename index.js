@@ -4,7 +4,11 @@ const path = require('path');
 let babel, commentsProperty, imports, levelsUp, modulePath, recast, resourcePath;
 
 function parseModules(type) {
-  return type.match(/module\:[^ \|\}\>,=\n]+/g);
+  return type.match(/module\:[^ \|\}\>\),=\n]+/g).map(match => {
+    // Strip incomplete type applications (e.g. `.<T`) from comment-parser.
+    //TODO Fix this with a custom parser instead.
+    return match.replace(/\.?\<.*$/, '');
+  });
 }
 
 function formatImport(type) {
