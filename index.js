@@ -87,7 +87,7 @@ function processTypedef(tags, comment) {
   if (typedef) {
     const closureTypedef = type ? JSON.stringify(type).replace(/"/g, '') : typedef.type;
     let addLines = comment.value.split('\n').length - 1;
-    newComment = typedef.source.replace(/(@typedef\s*){[^}]+} .*/, `$1{${closureTypedef}}`);
+    newComment = typedef.source.replace(/(@typedef\s*){[^}]+}\s.*/, `$1{${closureTypedef}}`);
     newComment = `* ${newComment}`;
     if (typedef.name) {
       addLines--;

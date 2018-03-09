@@ -20,10 +20,10 @@ const recastOptions = {
 describe('babel-plugin-jsdoc-closure', function() {
 
   function test(source, expected, filename) {
-    let got = babel.transform(source, filename ? Object.assign({filename}, options) : options);
-    assert.equal(got.code.replace(/[\n\s]+/g, ''), expected.replace(/[\n\s]+/g, ''));
-    got = babel.transform(source,  filename ? Object.assign({filename}, recastOptions) : recastOptions);
+    let got = babel.transform(source,  filename ? Object.assign({filename}, recastOptions) : recastOptions);
     assert.equal(got.code, expected);
+    got = babel.transform(source, filename ? Object.assign({filename}, options) : options);
+    assert.equal(got.code.replace(/[\n\s]+/g, ''), expected.replace(/[\n\s]+/g, ''));
   }
 
   it('transforms a type with an imported module', function() {
@@ -178,7 +178,8 @@ describe('babel-plugin-jsdoc-closure', function() {
       ' * @typedef {number} Bar\n' +
       ' */\n' +
       '/**\n' +
-      ' * @typedef {Object} Foo\n' +
+      ' * @typedef {Object}\n' +
+      ' * Foo\n' +
       ' * @property {!module:module1/Bar} bar Bar.\n' +
       ' * @property {number} [baz=0] Baz.\n' +
       ' */\n',
@@ -187,6 +188,7 @@ describe('babel-plugin-jsdoc-closure', function() {
       ' */\n' +
       'export let Bar;\n\n' +
       '/** @typedef {{bar:(!module1$Bar),baz:(undefined|number)}}\n' +
+      ' *\n' +
       ' *\n' +
       ' *\n' +
       ' */\n' +
