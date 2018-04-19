@@ -120,6 +120,12 @@ function processComments(property, node, path) {
           if (newComment) {
             if (recast) {
               comment = babel.transform(`/*${newComment}*/`).ast.comments[0];
+              if (path.parent && path.parent.type == 'ReturnStatement') {
+                const parenthesized = babel.types.parenthesizedExpression(node);
+                parenthesized.comments = path.parent.argument.comments;
+                delete path.parent.argument.comments;
+                path.parent.argument = parenthesized;
+              }
               comments[i] = comment;
             } else {
               comment.value = newComment;
