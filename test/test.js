@@ -57,6 +57,24 @@ describe('babel-plugin-jsdoc-closure', function() {
     assert.equal(got.code, expected);
   });
 
+  it('transforms an object property type cast with an imported module in a return statement', function() {
+    // requires recast, and causes line break changes unfortunately
+    const source =
+      '/** @module module2/types */\n' +
+      'function getFoo() {\n' +
+      '  return /** @type {Object} */ ({\n      foo: /** @type {module:module1/Foo} */ (\'bar\')\n  });\n' +
+      '}';
+    const expected =
+      '/** @module module2/types */\n' +
+      'function getFoo() {\n' +
+      '  return (\n    /** @type {Object} */ ({\n      foo: /** @type {module1$Foo} */ (\'bar\')\n    })\n  );\n' +
+      '}\n' +
+      'const module1$Foo = require(\'../module1/Foo\');';
+    const filename = './test/module2/types.js';
+    const got = babel.transform(source, Object.assign({filename}, recastOptions));
+    assert.equal(got.code, expected);
+  });
+
   it('transforms a type with an imported default export', function() {
     test(
       '/** @module module2/types */\n' +

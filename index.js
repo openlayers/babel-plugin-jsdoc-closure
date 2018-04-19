@@ -120,12 +120,6 @@ function processComments(property, node, path) {
           if (newComment) {
             if (recast) {
               comment = babel.transform(`/*${newComment}*/`).ast.comments[0];
-              if (path.parent && path.parent.type == 'ReturnStatement') {
-                const parenthesized = babel.types.parenthesizedExpression(node);
-                parenthesized.comments = path.parent.argument.comments;
-                delete path.parent.argument.comments;
-                path.parent.argument = parenthesized;
-              }
               comments[i] = comment;
             } else {
               comment.value = newComment;
@@ -157,10 +151,21 @@ function processComments(property, node, path) {
 module.exports = function(b) {
 
   babel = b;
+  const t = babel.types;
 
   return {
     visitor: {
-      Program: function(path, state) {
+      ReturnStatement(path) {
+        const argument = path.node.argument;
+        if (argument && argument.comments && argument.extra && argument.extra.parenthesized) {
+          const parenthesized = t.parenthesizedExpression(path.node.argument);
+          const comments = path.node.argument.comments;
+          delete path.node.argument.comments;
+          parenthesized.comments = comments;
+          path.node.argument = parenthesized;
+        }
+      },
+      Program(path, state) {
         recast = state.file.opts.parserOpts && state.file.opts.parserOpts.parser == 'recast';
         commentsProperty = recast ? 'comments' : 'leadingComments';
         resourcePath = state.file.opts.filename;
