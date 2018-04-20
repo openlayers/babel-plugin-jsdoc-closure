@@ -1,5 +1,6 @@
 const parseComment = require('comment-parser');
 const path = require('path');
+const fs = require('fs');
 
 let babel, commentsProperty, levelsUp, modulePath, recast, resourcePath;
 
@@ -21,13 +22,25 @@ function formatImport(type) {
     up += '../';
   }
   const typePath = (up || './') + (pathParts.length > 0 ? pathParts.join('/') + '/' : '');
+  const filePath = `${typePath}${namedParts[0]}`;
 
-  if (namedParts.length > 1 && namedParts[1] != namedParts[0]) {
-    return `${typePath}${namedParts[0]}.${namedParts[1]}`;
-  } else {
-    return `${typePath}${namedParts[0]}`;
+  if (namedParts.length > 1) {
+    const dependency = require.resolve(path.resolve(path.dirname(resourcePath), filePath));
+    const content = babel.transform(fs.readFileSync(dependency, 'utf-8'));
+    let defaultExportName;
+    const candidates = content.ast.program.body;
+    for (let i = 0, ii = candidates.length; i < ii; ++i) {
+      const node = candidates[i];
+      if (node.type == 'ExportDefaultDeclaration') {
+        defaultExportName = node.declaration.name;
+        break;
+      }
+    }
+    if (namedParts[1] != defaultExportName) {
+      return `${filePath}.${namedParts[1]}`;
+    }
   }
-
+  return `${filePath}`;
 }
 
 function processTags(tags, comment) {

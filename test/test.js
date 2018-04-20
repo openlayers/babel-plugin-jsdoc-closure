@@ -30,11 +30,10 @@ describe('babel-plugin-jsdoc-closure', function() {
     test(
       '/** @module module2/types */\n' +
       '/** @type {module:module1/Bar} */\n' +
-      'let foo;\n',
+      'let foo;',
       '/** @module module2/types */\n' +
-      '/** @type {module1$Bar} */\n' +
-      'let foo;\n' +
-      'const module1$Bar = require(\'../module1/Bar\');',
+      '/** @type {../module1/Bar} */\n' +
+      'let foo;',
       './test/module2/types.js'
     );
   });
@@ -49,9 +48,8 @@ describe('babel-plugin-jsdoc-closure', function() {
     const expected =
       '/** @module module2/types */\n' +
       'function getFoo() {\n' +
-      '  return (\n    /** @type {module1$Bar} */\n    (bar.getBar())\n  );\n' +
-      '}\n' +
-      'const module1$Bar = require(\'../module1/Bar\');';
+      '  return (\n    /** @type {../module1/Bar} */\n    (bar.getBar())\n  );\n' +
+      '}';
     const filename = './test/module2/types.js';
     const got = babel.transform(source, Object.assign({filename}, recastOptions));
     assert.equal(got.code, expected);
@@ -67,9 +65,8 @@ describe('babel-plugin-jsdoc-closure', function() {
     const expected =
       '/** @module module2/types */\n' +
       'function getFoo() {\n' +
-      '  return (\n    /** @type {Object} */ ({\n      foo: /** @type {module1$Foo} */ (\'bar\')\n    })\n  );\n' +
-      '}\n' +
-      'const module1$Foo = require(\'../module1/Foo\');';
+      '  return (\n    /** @type {Object} */ ({\n      foo: /** @type {../module1/Foo} */ (\'bar\')\n    })\n  );\n' +
+      '}';
     const filename = './test/module2/types.js';
     const got = babel.transform(source, Object.assign({filename}, recastOptions));
     assert.equal(got.code, expected);
@@ -78,12 +75,11 @@ describe('babel-plugin-jsdoc-closure', function() {
   it('transforms a type with an imported default export', function() {
     test(
       '/** @module module2/types */\n' +
-      '/** @type {module:module1/Bar~Bar} */\n' +
-      'let foo;\n',
+      '/** @type {module:module1/Bar~BarDefault} */\n' +
+      'let foo;',
       '/** @module module2/types */\n' +
-      '/** @type {module1_Bar_Bar} */\n' +
-      'let foo;\n' +
-      'const module1_Bar_Bar = require(\'../module1/Bar\');',
+      '/** @type {../module1/Bar} */\n' +
+      'let foo;',
       './test/module2/types.js'
     );
   });
@@ -92,11 +88,10 @@ describe('babel-plugin-jsdoc-closure', function() {
     test(
       '/** @module module2/types */\n' +
       '/** @type {module:types.foo} */\n' +
-      'let foo;\n',
+      'let foo;',
       '/** @module module2/types */\n' +
-      '/** @type {_types_foo} */\n' +
-      'let foo;' + '\n' +
-      'const _types_foo = require(\'../types\').foo;',
+      '/** @type {../types.foo} */\n' +
+      'let foo;',
       './test/module2/types.js'
     );
   });
@@ -105,11 +100,10 @@ describe('babel-plugin-jsdoc-closure', function() {
     test(
       '/** @module module2/types */\n' +
       '/** @type {module:types~foo} */\n' +
-      'let foo;\n',
+      'let foo;',
       '/** @module module2/types */\n' +
-      '/** @type {_types_foo} */\n' +
-      'let foo;' + '\n' +
-      'const _types_foo = require(\'../types\').foo;',
+      '/** @type {../types.foo} */\n' +
+      'let foo;',
       './test/module2/types.js'
     );
   });
@@ -118,12 +112,10 @@ describe('babel-plugin-jsdoc-closure', function() {
     test(
       '/** @module module2/types */\n' +
       '/** @type {module:types~foo.<module:types~bar>} */\n' +
-      'let foo;\n',
+      'let foo;',
       '/** @module module2/types */\n' +
-      '/** @type {_types_foo.<_types_bar>} */\n' +
-      'let foo;' + '\n' +
-      'const _types_foo = require(\'../types\').foo;\n' +
-      'const _types_bar = require(\'../types\').bar;',
+      '/** @type {../types.foo.<../types.bar>} */\n' +
+      'let foo;',
       './test/module2/types.js'
     );
   });
@@ -132,11 +124,10 @@ describe('babel-plugin-jsdoc-closure', function() {
     test(
       '/** @module module2/types */\n' +
       '/** @type {module:module1/Bar} */\n' +
-      'let foo;\n',
+      'let foo;',
       '/** @module module2/types */\n' +
-      '/** @type {module1$Bar} */\n' +
-      'let foo;\n' +
-      'const module1$Bar = require(\'../../module1/Bar\');',
+      '/** @type {../../module1/Bar} */\n' +
+      'let foo;',
       './test/module2/types/index.js'
     );
   });
@@ -145,11 +136,10 @@ describe('babel-plugin-jsdoc-closure', function() {
     test(
       '/** @module module2/types */\n' +
       '/** @type {module:module1/Bar|string} */\n' +
-      'let foo;\n',
+      'let foo;',
       '/** @module module2/types */\n' +
-      '/** @type {module1$Bar|string} */\n' +
-      'let foo;\n' +
-      'const module1$Bar = require(\'../module1/Bar\');',
+      '/** @type {../module1/Bar|string} */\n' +
+      'let foo;',
       './test/module2/types.js'
     );
   });
@@ -158,11 +148,10 @@ describe('babel-plugin-jsdoc-closure', function() {
     test(
       '/** @module module2/types */\n' +
       '/** @type {Object<string, module:module1/Bar>} */\n' +
-      'let foo;\n',
+      'let foo;',
       '/** @module module2/types */\n' +
-      '/** @type {Object<string, module1$Bar>} */\n' +
-      'let foo;\n' +
-      'const module1$Bar = require(\'../module1/Bar\');',
+      '/** @type {Object<string, ../module1/Bar>} */\n' +
+      'let foo;',
       './test/module2/types.js'
     );
   });
@@ -171,11 +160,10 @@ describe('babel-plugin-jsdoc-closure', function() {
     test(
       '/** @module module2/types */\n' +
       '/** @param {module:module1/Bar=} */\n' +
-      'let foo;\n',
+      'let foo;',
       '/** @module module2/types */\n' +
-      '/** @param {module1$Bar=} */\n' +
-      'let foo;\n' +
-      'const module1$Bar = require(\'../module1/Bar\');',
+      '/** @param {../module1/Bar=} */\n' +
+      'let foo;',
       './test/module2/types.js'
     );
   });
@@ -184,11 +172,10 @@ describe('babel-plugin-jsdoc-closure', function() {
     test(
       '/** @module module2/types */\n' +
       '/** @param {!module:module1/Bar} */\n' +
-      'let foo;\n',
+      'let foo;',
       '/** @module module2/types */\n' +
-      '/** @param {!module1$Bar} */\n' +
-      'let foo;\n' +
-      'const module1$Bar = require(\'../module1/Bar\');',
+      '/** @param {!../module1/Bar} */\n' +
+      'let foo;',
       './test/module2/types.js'
     );
   });
@@ -223,13 +210,12 @@ describe('babel-plugin-jsdoc-closure', function() {
       '/** @typedef {number}\n' +
       ' */\n' +
       'export let Bar;\n\n' +
-      '/** @typedef {{bar:(!module1$Bar),baz:(undefined|number)}}\n' +
+      '/** @typedef {{bar:(!../module1/Bar),baz:(undefined|number)}}\n' +
       ' *\n' +
       ' *\n' +
       ' *\n' +
       ' */\n' +
-      'export let Foo;\n\n' +
-      'const module1$Bar = require(\'../module1/Bar\');',
+      'export let Foo;',
       './test/module2/types.js'
     );
   });
