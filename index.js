@@ -1,7 +1,7 @@
 const parseComment = require('comment-parser');
 const path = require('path');
 
-let babel, commentsProperty, imports, levelsUp, modulePath, recast, resourcePath;
+let babel, commentsProperty, levelsUp, modulePath, recast, resourcePath;
 
 function parseModules(type) {
   return type.match(/module\:[^ \|\}\>\),=\n]+/g).map(match => {
@@ -23,23 +23,11 @@ function formatImport(type) {
   const typePath = (up || './') + (pathParts.length > 0 ? pathParts.join('/') + '/' : '');
 
   if (namedParts.length > 1 && namedParts[1] != namedParts[0]) {
-    return `const ${formatType(type)} = require('${typePath}${namedParts[0]}').${namedParts[1]};`;
+    return `${typePath}${namedParts[0]}.${namedParts[1]}`;
   } else {
-    return `const ${formatType(type)} = require('${typePath}${namedParts[0]}');`;
+    return `${typePath}${namedParts[0]}`;
   }
 
-}
-
-function formatType(type) {
-  type = type.replace(/module\:/, '');
-  const pathParts = type.split('/');
-  const name = pathParts.pop();
-  const namedParts = name.split(/[\.~]/);
-  if (namedParts.length > 1) {
-    return `${pathParts.join('_')}_${namedParts.join('_')}`;
-  } else {
-    return `${pathParts.join('$')}$${namedParts[0]}`;
-  }
 }
 
 function processTags(tags, comment) {
@@ -59,9 +47,7 @@ function processTags(tags, comment) {
           if (moduleMatch && moduleMatch[1] == modulePath) {
             replacement = moduleMatch[2];
           } else {
-            replacement = formatType(type);
-            const importLine = formatImport(type);
-            imports[importLine] = true;
+            replacement = formatImport(type);
           }
           newComment = comment.value.replace(new RegExp(type, 'g'), replacement);
         });
@@ -169,7 +155,6 @@ module.exports = function(b) {
         recast = state.file.opts.parserOpts && state.file.opts.parserOpts.parser == 'recast';
         commentsProperty = recast ? 'comments' : 'leadingComments';
         resourcePath = state.file.opts.filename;
-        imports = {};
         const root = path.node;
         const innerCommentsProperty = recast ? 'comments' : 'innerComments';
         if (root[innerCommentsProperty]) {
@@ -181,10 +166,6 @@ module.exports = function(b) {
               processComments(commentsProperty, path.node, path);
             }
           }
-        });
-        Object.keys(imports).forEach(i => {
-          const node = babel.transform(i).ast.program.body[0];
-          path.pushContainer('body', node);
         });
       }
     }
