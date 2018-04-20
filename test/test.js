@@ -75,10 +75,12 @@ describe('babel-plugin-jsdoc-closure', function() {
   it('transforms a type with an imported default export', function() {
     test(
       '/** @module module2/types */\n' +
+      'import Bar from \'../module1/Bar\';\n' +
       '/** @type {module:module1/Bar~BarDefault} */\n' +
       'let foo;',
       '/** @module module2/types */\n' +
-      '/** @type {../module1/Bar} */\n' +
+      'import Bar from \'../module1/Bar\';\n' +
+      '/** @type {Bar} */\n' +
       'let foo;',
       './test/module2/types.js'
     );
@@ -87,10 +89,12 @@ describe('babel-plugin-jsdoc-closure', function() {
   it('transforms a type with an imported named export', function() {
     test(
       '/** @module module2/types */\n' +
+      'import {foo as Foo} from \'../types\';\n' +
       '/** @type {module:types.foo} */\n' +
       'let foo;',
       '/** @module module2/types */\n' +
-      '/** @type {../types.foo} */\n' +
+      'import {foo as Foo} from \'../types\';\n' +
+      '/** @type {Foo} */\n' +
       'let foo;',
       './test/module2/types.js'
     );

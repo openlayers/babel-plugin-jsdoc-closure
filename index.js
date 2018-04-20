@@ -2,7 +2,7 @@ const parseComment = require('comment-parser');
 const path = require('path');
 const fs = require('fs');
 
-let babel, commentsProperty, levelsUp, modulePath, recast, resourcePath;
+let babel, commentsProperty, imports, levelsUp, modulePath, recast, resourcePath;
 
 function parseModules(type) {
   return type.match(/module\:[^ \|\}\>\),=\n]+/g).map(match => {
@@ -61,6 +61,10 @@ function processTags(tags, comment) {
             replacement = moduleMatch[2];
           } else {
             replacement = formatImport(type);
+          }
+          const lookup = path.resolve(path.dirname(resourcePath), replacement);
+          if (lookup in imports) {
+            replacement = imports[lookup];
           }
           newComment = comment.value.replace(new RegExp(type, 'g'), replacement);
         });
@@ -164,19 +168,33 @@ module.exports = function(b) {
           path.node.argument = parenthesized;
         }
       },
-      Program(path, state) {
+      Program(p, state) {
+        imports = {};
         recast = state.file.opts.parserOpts && state.file.opts.parserOpts.parser == 'recast';
         commentsProperty = recast ? 'comments' : 'leadingComments';
         resourcePath = state.file.opts.filename;
-        const root = path.node;
+        const root = p.node;
         const innerCommentsProperty = recast ? 'comments' : 'innerComments';
         if (root[innerCommentsProperty]) {
-          processComments(innerCommentsProperty, root, path);
+          processComments(innerCommentsProperty, root, p);
         }
-        path.traverse({
-          enter(path) {
-            if (path.node[commentsProperty]) {
-              processComments(commentsProperty, path.node, path);
+        p.traverse({
+          enter(p) {
+            if (p.node.type == 'ImportDeclaration') {
+              const specifiers = p.node.specifiers;
+              for (let i = 0, ii = specifiers.length; i < ii; ++i) {
+                const specifier = specifiers[i];
+                let modulePath = path.resolve(path.dirname(resourcePath), p.node.source.value);
+                modulePath = modulePath.replace(/\.js$/, '');
+                if (specifier.type == 'ImportDefaultSpecifier') {
+                  imports[modulePath] = specifier.local.name;
+                } else if (specifier.type == 'ImportSpecifier') {
+                  imports[`${modulePath}.${specifier.imported.name}`] = specifier.local.name;
+                }
+              }
+            }
+            if (p.node[commentsProperty]) {
+              processComments(commentsProperty, p.node, p);
             }
           }
         });
