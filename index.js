@@ -66,7 +66,7 @@ function processTags(tags, comment) {
           if (lookup in imports) {
             replacement = imports[lookup];
           }
-          newComment = comment.value.replace(new RegExp(type, 'g'), replacement);
+          newComment = comment.value.replace(new RegExp(`${type}([^~])`, 'g'), `${replacement}$1`);
         });
       }
     }
