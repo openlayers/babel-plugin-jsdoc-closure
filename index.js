@@ -64,7 +64,30 @@ function processTags(tags, comment) {
           }
           const lookup = path.resolve(path.dirname(resourcePath), replacement);
           if (lookup in imports) {
-            replacement = imports[lookup];
+            let useImport = true;
+            if (!path.extname(lookup)) {
+              const dependency = require.resolve(path.resolve(path.dirname(resourcePath), lookup));
+              const content = babel.transform(fs.readFileSync(dependency, 'utf-8'));
+              const candidates = content.ast.program.body;
+              outer:
+              for (let i = 0, ii = candidates.length; i < ii; ++i) {
+                const node = candidates[i];
+                if (node.type == 'ExportDefaultDeclaration') {
+                  const comments = node.leadingComments;
+                  if (comments) {
+                    for (let i = 0, ii = comments.length; i < ii; ++i) {
+                      if (comments[i].value.indexOf('@enum') !== -1) {
+                        useImport = false;
+                        break outer;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            if (useImport) {
+              replacement = imports[lookup];
+            }
           }
           newComment = comment.value.replace(new RegExp(`${type}([^~])`, 'g'), `${replacement}$1`);
         });

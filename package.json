@@ -1,6 +1,6 @@
 {
   "name": "babel-plugin-jsdoc-closure",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Transpiles JSDoc types from namepaths to types for Closure Compiler",
   "main": "index.js",
   "scripts": {

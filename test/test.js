@@ -100,6 +100,21 @@ describe('babel-plugin-jsdoc-closure', function() {
     );
   });
 
+  it('transforms an enum imported as default export', function() {
+    test(
+      '/** @module module2/types */\n' +
+      'import Bar from \'../module1/Bar\';\n' +
+      '/** @type {module:module1/Type} */\n' +
+      'let foo;',
+      '/** @module module2/types */\n' +
+      'import Bar from \'../module1/Bar\';\n' +
+      '/** @type {../module1/Type} */\n' +
+      'let foo;',
+      './test/module2/types.js'
+    );
+  });
+
+
   it('transforms a type with a JSDoc module path', function() {
     test(
       '/** @module module2/types */\n' +
