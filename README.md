@@ -114,7 +114,7 @@ const foo$Bar = require('./foo/Bar');
 
 With this, the type definition is recognized by Closure Compiler.
 
-### Convert JSDoc typedefs to Closure typedefs
+### Convert JSDoc object typedefs to Closure structural interfaces
 
 JSDoc uses a nice, documentable format for `{Object}` typedefs:
 
@@ -129,10 +129,14 @@ JSDoc uses a nice, documentable format for `{Object}` typedefs:
 Such typedefs are not understood by Closure compiler, so they are transformed to something like
 
 ```js
-/**
- * @typedef {{bar: (string), baz: (_types_Baz)}}
- */
-export let Foo;
+/** @interface */
+export function Foo() {};
+
+/** @type {(string)} */
+Foo.prototype.bar;
+
+/** @type {(_types_Baz)} */
+Foo.prototype.baz;
 ```
 
 Properties marked as optional with JSDoc notation are also handled. The plugin will transforms `@property {number} [foo] Foo.` or `@property {number=} foo Foo.` to `foo: (undefined|number)`.
