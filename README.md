@@ -136,7 +136,3 @@ export let Foo;
 ```
 
 Properties marked as optional with JSDoc notation are also handled. The plugin will transforms `@property {number} [foo] Foo.` or `@property {number=} foo Foo.` to `foo: (undefined|number)`.
-
-### Notes
-
-To avoid the need for source maps, line numbers are retained by this plugin. This is the reason why the `require()` assignments are added at the bottom of each file.

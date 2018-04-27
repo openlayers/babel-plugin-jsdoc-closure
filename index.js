@@ -111,18 +111,22 @@ function processTypedef(tags, comment) {
     }
   }
   if (typedef) {
-    const closureTypedef = type ? JSON.stringify(type).replace(/"/g, '') : typedef.type;
-    let addLines = comment.value.split('\n').length - 1;
-    newComment = typedef.source.replace(/(@typedef\s*){[^}]+}\s.*/, `$1{${closureTypedef}}`);
-    newComment = `* ${newComment}`;
-    if (typedef.name) {
-      addLines--;
-      typedefExport = `export let ${typedef.name};\n`;
+    if (type) {
+      const closureTypedef = [`export function ${typedef.name}() {};`];
+      for (const name in type) {
+        closureTypedef.push(`/** @type {${type[name]}} */ ${typedef.name}.prototype.${name};`);
+      }
+      typedefExport = closureTypedef.join('\n');
+      newComment = '* @interface ';
+    } else {
+      const closureTypedef = typedef.type;
+      if (typedef.name) {
+        typedefExport = `export let ${typedef.name};\n`;
+      }
+      newComment = typedef.source.replace(/(@typedef\s*){[^}]+}\s.*/, `$1{${closureTypedef}}`);
+      newComment = `* ${newComment}`;
+      newComment += ' ';
     }
-    while (addLines--) {
-      newComment += '\n' + (addLines >= 1 ? ' *' : '');
-    }
-    newComment += ' ';
   }
   return [newComment, typedefExport];
 }
@@ -153,17 +157,27 @@ function processComments(property, node, path) {
           }
           if (typedefExport) {
             const program = babel.transform(typedefExport).ast.program;
-            const newNode = program.body[0];
-            newNode[commentsProperty] = comments.splice(0, i + 1);
-            newNode[commentsProperty].forEach(comment => {
-              comment.leading = true;
-            });
-            i = -1;
-            ii = comments.length;
-            if (node.type != 'Program') {
-              path.insertBefore(newNode);
-            } else {
-              path.parent.program.body.push(newNode);
+            for (let j = 0, jj = program.body.length; j < jj; ++j) {
+              const newNode = program.body[j];
+              if (j == 0) {
+                newNode[commentsProperty] = comments.splice(0, i + 1);
+                newNode[commentsProperty].forEach(comment => {
+                  comment.leading = true;
+                });
+                i = -1;
+                ii = comments.length;
+              } else if (newNode.leadingComments && commentsProperty !== 'leadingComments') {
+                newNode[commentsProperty] = newNode.leadingComments;
+                newNode[commentsProperty].forEach(comment => {
+                  comment.leading = true;
+                });
+
+              }
+              if (node.type != 'Program') {
+                path.insertBefore(newNode);
+              } else {
+                path.parent.program.body.push(newNode);
+              }
             }
             typedefExport = undefined;
             newComment = undefined;
