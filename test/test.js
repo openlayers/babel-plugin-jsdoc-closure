@@ -207,7 +207,7 @@ describe('babel-plugin-jsdoc-closure', function() {
       ' */\n',
       '/** @module module2/types */\n' +
       '/** @typedef {number} */\n' +
-      'export let Foo;',
+      'export let Foo;\n',
       './test/module2/types.js'
     );
   });
@@ -227,7 +227,7 @@ describe('babel-plugin-jsdoc-closure', function() {
       '/** @type {(!../module1/Bar)} */\n' +
       'Foo.prototype.bar;\n\n' +
       '/** @type {(undefined|number)} */\n' +
-      'Foo.prototype.baz;',
+      'Foo.prototype.baz;\n',
       './test/module2/types.js'
     );
   });
